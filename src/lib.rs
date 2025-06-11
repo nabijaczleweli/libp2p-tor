@@ -317,7 +317,7 @@ impl Transport for TorTransport {
         // If the address is not an onion3 address, return an error
         let Some(libp2p::multiaddr::Protocol::Onion3(address)) = onion_address.into_iter().nth(0)
         else {
-            return Err(TransportError::MultiaddrNotSupported(onion_address.clone()));
+            return Err(TransportError::MultiaddrNotSupported(onion_address));
         };
 
         // Find the running onion service that matches the requested address
@@ -329,8 +329,11 @@ impl Transport for TorTransport {
                 service.onion_name().map_or(false, |name| {
                     name.to_multiaddr(address.port()) == onion_address
                 })
-            })
-            .ok_or_else(|| TransportError::MultiaddrNotSupported(onion_address.clone()))?;
+            });
+        let Some(position) = position
+        else {
+            return Err(TransportError::MultiaddrNotSupported(onion_address));
+        };
 
         let (service, request_stream) = self.services.remove(position);
 
@@ -342,7 +345,7 @@ impl Transport for TorTransport {
                 service,
                 request_stream,
                 port: address.port(),
-                onion_address: onion_address,
+                onion_address,
                 status_stream,
                 announced: false,
             },
@@ -377,8 +380,8 @@ impl Transport for TorTransport {
             AddressConversion::IpAndDns => dangerous_extract(&addr),
         };
 
-        let tor_address =
-            maybe_tor_addr.ok_or_else(|| TransportError::MultiaddrNotSupported(addr.clone()))?;
+        let Some(tor_address) = maybe_tor_addr
+            else { return Err(TransportError::MultiaddrNotSupported(addr)); };
         let onion_client = self.client.clone();
 
         Ok(Box::pin(async move {
