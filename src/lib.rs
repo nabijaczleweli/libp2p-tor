@@ -38,7 +38,7 @@
 //! This crate uses tokio with rustls for its runtime and TLS implementation.
 //! No other combinations are supported.
 //!
-//! ## Example
+//! ## Examples
 //! ```no_run
 //! use libp2p::core::Transport;
 //! # async fn test_func() -> Result<(), Box<dyn std::error::Error>> {
@@ -50,6 +50,28 @@
 //! # }
 //! # tokio_test::block_on(test_func());
 //! ```
+//!
+//! ```no_run
+//! use libp2p::core::Transport;
+//! use std::sync::{Arc, Mutex};
+//! use libp2p_community_tor::tor_interface::tor_provider::TorProvider;
+//! # async fn test_func() -> Result<(), Box<dyn std::error::Error>> {
+//! let address = "/dns/www.torproject.org/tcp/1000".parse()?;
+//! let mut provider = libp2p_community_tor::tor_interface::legacy_tor_client::LegacyTorClient::new(
+//!     libp2p_community_tor::tor_interface::legacy_tor_client::LegacyTorClientConfig::system_from_environment().unwrap())?;
+//! provider.bootstrap()?;
+//! let mut transport = libp2p_community_tor::TorInterfaceTransport::from_provider(Default::default(), Arc::new(Mutex::new(provider)), None);
+//! // we have achieved tor connection
+//! let _conn = transport.dial(address)?.await?;
+//! # Ok(())
+//! # }
+//! # tokio_test::block_on(test_func());
+//! ```
 
 mod arti;
 pub use arti::*;
+
+#[cfg(feature="tor-interface")]
+mod tor;
+#[cfg(feature="tor-interface")]
+pub use tor::*;

@@ -5,8 +5,8 @@ edition = "2021"
 license = "MIT"
 resolver = "2"
 description = "Tor transport for libp2p."
-repository = "https://github.com/umgefahren/libp2p-tor"
-authors = ["umgefahren <hannes@umgefahren.xyz>"]
+repository = "https://github.com/UnstoppableSwap/libp2p-tor"
+authors = ["umgefahren <hannes@umgefahren.xyz>", "наб <nabijaczleweli@nabijaczleweli.xyz>"]
 
 [dependencies]
 thiserror = "1.0"
@@ -15,6 +15,7 @@ tokio = "1.41.1"
 futures = "0.3"
 
 arti-client = { version = "0.30", default-features = false, features = ["tokio", "rustls", "onion-service-client", "static-sqlite"] }
+tor-interface = { git = "https://github.com/nabijaczleweli/gosling", rev = "65da8990e33c674ed8abeb10b454b4a39463d81d", optional = true }
 libp2p = { version = "^0.53", default-features = false, features = ["tokio", "tcp", "tls"] }
 
 tor-rtcompat = { version = "0.30", features = ["tokio", "rustls"] }
@@ -37,10 +38,17 @@ listen-onion-service = [
     "dep:tor-cell",
     "dep:tor-proto"
 ]
+arti-client-tor-provider = ["tor-interface", "tor-interface/arti-client-tor-provider"]
+legacy-tor-provider      = ["tor-interface", "tor-interface/legacy-tor-provider"]
+mock-tor-provider        = ["tor-interface", "tor-interface/mock-tor-provider"]
 
 [[example]]
 name = "ping-onion"
 required-features = ["listen-onion-service"]
+
+[[example]]
+name = "ping-onion-tor-interface"
+required-features = ["tor-interface"]
 
 [package.metadata.docs.rs]
 all-features = true
