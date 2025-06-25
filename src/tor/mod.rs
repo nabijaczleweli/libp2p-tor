@@ -36,7 +36,6 @@ use tokio::net::TcpListener;
 
 use std::pin::Pin;
 use std::sync::{Arc, Mutex, MutexGuard};
-use std::borrow::Cow;
 use std::net::SocketAddr;
 use std::task::{Context, Poll};
 use thiserror::Error;
@@ -134,9 +133,17 @@ impl<T: TorProvider> TorInterfaceTransport<T> {
         private_key: &Ed25519PrivateKey,
         virt_port: u16,
         authorised_clients: Option<&[X25519PublicKey]>,
+        socket_addr: Option<SocketAddr>,
     ) -> anyhow::Result<Multiaddr> {
-        let ol = self.listener_or_bootstrap(|p| p.listener(private_key, virt_port, authorised_clients))?;
-        self.add_onion_service_impl(private_key, virt_port, ol)
+        let ol = self.listener_or_bootstrap(|p| p.listener(private_key, virt_port, authorised_clients, socket_addr))?;
+        ol.set_nonblocking(true)?;
+
+        self.services.push((ol, None));
+
+        let svid = V3OnionServiceId::from_private_key(&private_key);
+        let multiaddr = svid.to_multiaddr(virt_port);
+
+        Ok(multiaddr)
     }
 
     fn listener_or_bootstrap<R, F: FnMut(&mut T) -> Result<R, tor_provider::Error>>(&mut self, mut f: F) -> Result<R, tor_provider::Error> {
@@ -150,32 +157,6 @@ impl<T: TorProvider> TorInterfaceTransport<T> {
                 res @ Ok(_) | res @ Err(_) => return res,
             }
         }
-    }
-
-    fn add_onion_service_impl(&mut self, private_key: &Ed25519PrivateKey, virt_port: u16, ol: OnionListener) -> anyhow::Result<Multiaddr> {
-        ol.set_nonblocking(true)?;
-
-        self.services.push((ol, None));
-
-        let svid = V3OnionServiceId::from_private_key(&private_key);
-        let multiaddr = svid.to_multiaddr(virt_port);
-
-        Ok(multiaddr)
-    }
-}
-
-impl TorInterfaceTransport<tor_interface::legacy_tor_client::LegacyTorClient> {
-    /// The generic [`add_onion_service()`] implementation uses the default configuration (known key, listening on `127.0.0.1:0`)
-    pub fn add_customised_onion_service<'pk>(
-        &mut self,
-        private_key: Option<&'pk Ed25519PrivateKey>,
-        virt_port: u16,
-        authorised_clients: Option<&[X25519PublicKey]>,
-        socket_addr: SocketAddr,
-    ) -> anyhow::Result<(Multiaddr, Cow<'pk, Ed25519PrivateKey>)> {
-        let (genpk, ol) = self.listener_or_bootstrap(|p| p.customised_listener(private_key, virt_port, authorised_clients, socket_addr))?;
-        let private_key = private_key.map(Cow::Borrowed).or(genpk.map(Cow::Owned)).unwrap_or_else(|| unreachable!());
-        self.add_onion_service_impl(&private_key, virt_port, ol).map(|ma| (ma, private_key))
     }
 }
 

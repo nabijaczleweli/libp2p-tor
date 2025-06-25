@@ -54,6 +54,7 @@ use libp2p::{
 };
 use std::error::Error;
 use std::sync::{Arc, Mutex};
+use tor_interface::tor_crypto::Ed25519PrivateKey;
 
 /// Create a transport
 /// Returns a tuple of the transport and the onion address we can instruct it to listen on
@@ -72,7 +73,7 @@ async fn onion_transport(
     let mut transport = libp2p_community_tor::TorInterfaceTransport::from_provider(
         libp2p_community_tor::AddressConversion::IpAndDns, Arc::new(Mutex::new(provider)), None)?;
 
-    let onion_listen_address = transport.add_customised_onion_service(None, 999, None, ([127, 0, 0, 1], 0u16).into()).unwrap().0;
+    let onion_listen_address = transport.add_onion_service(&Ed25519PrivateKey::generate(), 999, None, None).unwrap();
 
     let auth_upgrade = noise::Config::new(&keypair)?;
     let multiplex_upgrade = yamux::Config::default();
