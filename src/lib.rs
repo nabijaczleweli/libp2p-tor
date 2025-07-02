@@ -60,7 +60,7 @@
 //! let mut provider = libp2p_community_tor::tor_interface::legacy_tor_client::LegacyTorClient::new(
 //!     libp2p_community_tor::tor_interface::legacy_tor_client::LegacyTorClientConfig::system_from_environment().unwrap())?;
 //! provider.bootstrap()?;
-//! let mut transport = libp2p_community_tor::TorInterfaceTransport::from_provider(Default::default(), Arc::new(Mutex::new(provider)), None);
+//! let mut transport = libp2p_community_tor::TorInterfaceTransport::from_provider(Default::default(), Arc::new(Mutex::new(provider)), None)?;
 //! // we have achieved tor connection
 //! let _conn = transport.dial(address)?.await?;
 //! # Ok(())

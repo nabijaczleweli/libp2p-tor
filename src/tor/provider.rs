@@ -22,7 +22,7 @@
 //! It should be removed when libp2p is updated
 
 use futures::{AsyncRead, AsyncWrite};
-use tor_interface::tor_provider::{OnionAddr, TargetAddr, OnionStream, TcpOrUnixStream};
+use tor_interface::tor_provider::{OnionAddr, OnionStream, TargetAddr, TcpOrUnixOnionStream, TcpOrUnixStream};
 use libp2p::tcp::tokio::TcpStream;
 #[cfg(unix)]
 // use libp2p::unix_stream::tokio::UnixStream;
@@ -50,7 +50,7 @@ impl From<(tokio::net::TcpStream, Option<OnionAddr>)> for OnionStreamStream {
 }
 
 impl OnionStreamStream {
-    pub fn from_onion_stream(inner: OnionStream) -> std::io::Result<Self> {
+    pub fn from_onion_stream(inner: TcpOrUnixOnionStream) -> std::io::Result<Self> {
         let local_addr = inner.local_addr();
         let peer_addr = inner.peer_addr();
         inner.set_nonblocking(true)?;

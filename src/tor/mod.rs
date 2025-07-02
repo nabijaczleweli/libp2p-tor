@@ -23,7 +23,7 @@
 #![deny(unsafe_code)]
 
 use futures::future::BoxFuture;
-use tor_interface::tor_provider::{self, CircuitToken, TorProvider, OnionListener, OnionAddr};
+use tor_interface::tor_provider::{self, CircuitToken, TcpOnionListener, TcpOrUnixOnionStream, TorProvider, OnionListener, OnionAddr};
 use tor_interface::tor_crypto::{V3OnionServiceId, Ed25519PrivateKey, X25519PublicKey};
 use libp2p::{
     core::transport::{ListenerId, TransportEvent},
@@ -60,7 +60,7 @@ pub struct TorInterfaceTransport<T: TorProvider> {
     listeners: HashMap<ListenerId, TcpListener>,
 
     /// Onion services we are running (implicitly excluded if ListenerId present)
-    services: Vec<(OnionListener, Option<ListenerId>)>,
+    services: Vec<(TcpOnionListener, Option<ListenerId>)>,
 
     /// Services yet to be announced
     waiting_to_announce: HashMap<ListenerId, OnionAddr>,
@@ -95,7 +95,7 @@ fn bootstrap<T: TorProvider>(provider: &mut T) -> Result<(), tor_provider::Error
     }
 }
 
-impl<T: TorProvider> TorInterfaceTransport<T> {
+impl<T: TorProvider<Listener = TcpOnionListener>> TorInterfaceTransport<T> {
     /// Creates a new `TorClientBuilder`.
     pub fn from_provider(
         conversion_mode: AddressConversion,
@@ -209,7 +209,7 @@ fn to_multiaddr() {
 }
 
 
-impl<T: TorProvider + Send + Sync + 'static> Transport for TorInterfaceTransport<T> {
+impl<T: TorProvider<Stream = TcpOrUnixOnionStream> + Send + Sync + 'static> Transport for TorInterfaceTransport<T> {
     type Error = TorInterfaceTransportError;
     type Output = OnionStreamStream;
     type ListenerUpgrade = std::future::Ready<Result<Self::Output, TorInterfaceTransportError>>;
